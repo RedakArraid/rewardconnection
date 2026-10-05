@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PARENT
+  CHILD
+}
+
+enum TaskStatus {
+  OPEN
+  CLAIMED
+  APPROVED
+  REJECTED
+}
+
+enum TokenTransactionType {
+  GRANT
+  SPEND
+  ADJUSTMENT
+  TASK_REWARD
+}
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  users     User[]
+  devices   Device[]
+  tasks     HouseholdTask[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  familyId     String
+  family       Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  role         UserRole
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  wallet             TokenWallet?
+  devices            Device[]
+  tasksAssigned      HouseholdTask[] @relation("TaskChild")
+  tasksCreated       HouseholdTask[] @relation("TaskCreator")
+  tokenTransactions  TokenTransaction[] @relation("TokenOwner")
+  transactionsIssued TokenTransaction[] @relation("TokenIssuer")
+  internetSessions   InternetSession[]
+
+  @@index([familyId, role])
+}
+
+model TokenWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model TokenTransaction {
+  id         String               @id @default(cuid())
+  userId     String
+  user       User                 @relation("TokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+  issuerId   String?
+  issuer     User?                @relation("TokenIssuer", fields: [issuerId], references: [id], onDelete: SetNull)
+  type       TokenTransactionType
+  amount     Int
+  reason     String?
+  createdAt  DateTime             @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Device {
+  id         String   @id @default(cuid())
+  familyId   String
+  family     Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  macAddress String?
+  ipAddress  String?
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([macAddress])
+}
+
+model HouseholdTask {
+  id          String     @id @default(cuid())
+  familyId    String
+  family      Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  childId     String
+  child       User       @relation("TaskChild", fields: [childId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User       @relation("TaskCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  reward      Int        @default(1)
+  status      TaskStatus @default(OPEN)
+  claimedAt   DateTime?
+  resolvedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([childId, status])
+}
+
+model InternetSession {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt  DateTime      @default(now())
+  expiresAt  DateTime
+  endedAt    DateTime?
+  status     SessionStatus @default(ACTIVE)
+  tokenCost  Int           @default(1)
+  routerRef  String?
+  createdAt  DateTime      @default(now())
+
+  @@index([userId, status, expiresAt])
+}

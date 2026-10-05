@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reward
+      POSTGRES_PASSWORD: reward
+      POSTGRES_DB: rewardconnection
+    ports:
+      - "5432:5432"
+    volumes:
+      - rewardconnection_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reward -d rewardconnection"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rewardconnection_pg:
