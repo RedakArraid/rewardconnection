@@ -21,12 +21,13 @@ export default function ChildAccountManager({ children }: { children: Child[] })
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setBusy(true);
     setMessage("");
     setError("");
 
     try {
-      const data = new FormData(event.currentTarget);
+      const data = new FormData(form);
       const payload: Record<string, string> = {};
       const name = String(data.get("name") || "").trim();
       const email = String(data.get("email") || "").trim();
@@ -52,7 +53,7 @@ export default function ChildAccountManager({ children }: { children: Child[] })
         return;
       }
 
-      event.currentTarget.reset();
+      form.reset();
       setMessage("Compte enfant mis à jour.");
       router.refresh();
     } finally {
