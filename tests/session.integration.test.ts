@@ -101,3 +101,20 @@ test("activation is rejected when the child has no configured device", async () 
   const wallet = await prisma.tokenWallet.findUniqueOrThrow({ where: { userId: child.id } });
   assert.equal(wallet.balance, 2);
 });
+
+
+test("family token duration controls the next Internet session", async () => {
+  const { child } = await createFamilyFixture({ balance: 2, tokenMinutes: 25 });
+  const before = Date.now();
+
+  const result = await activateInternet(child.id);
+  const durationMs = result.session.expiresAt.getTime() - before;
+  const spend = await prisma.tokenTransaction.findFirstOrThrow({
+    where: { userId: child.id, type: "SPEND" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  assert.ok(durationMs >= 24 * 60_000);
+  assert.ok(durationMs <= 26 * 60_000);
+  assert.equal(spend.reason, "25 minutes d'Internet");
+});

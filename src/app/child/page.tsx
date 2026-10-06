@@ -17,7 +17,7 @@ export default async function ChildPage() {
 
   await reconcileExpiredSessions({ userId: child.id });
 
-  const [wallet, active, tasks, transactions, devices] = await Promise.all([
+  const [wallet, active, tasks, transactions, devices, family] = await Promise.all([
     prisma.tokenWallet.findUnique({ where: { userId: child.id } }),
     prisma.activeInternetAccess.findUnique({
       where: { userId: child.id },
@@ -36,6 +36,10 @@ export default async function ChildPage() {
     prisma.device.findMany({
       where: { userId: child.id },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.family.findUniqueOrThrow({
+      where: { id: child.familyId },
+      select: { tokenMinutes: true },
     }),
   ]);
 
@@ -59,7 +63,7 @@ export default async function ChildPage() {
           expiresAt={expiresAt?.toISOString() || null}
           initialSeconds={initialSeconds}
         />
-        <p>{active ? "Internet est actif sur tes appareils" : `Utilise 1 jeton pour ${process.env.TOKEN_MINUTES || 60} minutes`}</p>
+        <p>{active ? "Internet est actif sur tes appareils" : `Utilise 1 jeton pour ${family.tokenMinutes} minutes`}</p>
         <ChildActions active={Boolean(active)} canActivate={canActivate} />
       </section>
 

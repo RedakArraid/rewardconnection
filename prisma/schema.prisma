@@ -33,9 +33,10 @@ enum SessionStatus {
 }
 
 model Family {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  tokenMinutes Int      @default(60)
+  createdAt    DateTime @default(now())
   users     User[]
   devices   Device[]
   tasks     HouseholdTask[]

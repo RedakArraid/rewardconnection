@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   description: "Jetons, tâches et temps Internet familial",
 };
 
+export const viewport = {
+  themeColor: "#3457d5",
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">

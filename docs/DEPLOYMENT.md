@@ -188,3 +188,8 @@ Il sert à :
 - intégrer automatiquement un appareil ajouté pendant une session déjà active.
 
 Le worker ne consomme jamais un nouveau jeton. Il restaure uniquement l'état correspondant aux sessions déjà payées.
+
+
+## Réglage de la durée des jetons
+
+`TOKEN_MINUTES` sert uniquement à initialiser la première famille lors du premier démarrage. Après installation, le parent modifie directement cette durée depuis l'interface RewardConnection. La valeur est stockée en PostgreSQL et conservée lors des redémarrages et mises à jour.

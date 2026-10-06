@@ -115,3 +115,10 @@ input:focus, select:focus, textarea:focus { border-color: #86a0ff; box-shadow: 0
   .healthGrid { grid-template-columns: 1fr; }
   .tokenAdjust { grid-template-columns: 1fr; }
 }
+
+
+.settingsGrid { display: grid; grid-template-columns: minmax(220px,1fr) minmax(160px,220px) auto; gap: 12px; align-items: end; }
+
+@media (max-width: 760px) {
+  .settingsGrid { grid-template-columns: 1fr; }
+}
