@@ -8,6 +8,7 @@ import TaskResolveButtons from "@/components/TaskResolveButtons";
 import CreateChildForm from "@/components/CreateChildForm";
 import CreateParentForm from "@/components/CreateParentForm";
 import RouterPanel from "@/components/RouterPanel";
+import DeviceActions from "@/components/DeviceActions";
 
 function remaining(expiresAt: Date) {
   const ms = expiresAt.getTime() - Date.now();
@@ -130,7 +131,7 @@ export default async function ParentPage() {
                 <strong>{device.name}</strong>
                 <p>{child.name} · {device.ipAddress || "IP absente"} · {device.macAddress || "MAC absente"}</p>
               </div>
-              <span className={device.enabled ? "badge success" : "badge"}>{device.enabled ? "Actif" : "Désactivé"}</span>
+              <DeviceActions id={device.id} enabled={device.enabled} />
             </article>
           )))}
           {children.every((child) => child.devices.length === 0) && <div className="card empty">Aucun appareil associé.</div>}
