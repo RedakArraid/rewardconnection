@@ -86,7 +86,7 @@ docker compose logs -f app
 docker compose logs -f worker
 ```
 
-Tu dois voir trois services : `db`, `app` et `worker`.
+Tu dois voir quatre services : `db`, `app`, `worker` et `backup`.
 
 L'endpoint suivant doit répondre `{"status":"ok"}` :
 
@@ -106,23 +106,46 @@ Crée le premier parent.
 
 La route d'installation refuse ensuite de créer une seconde famille dès qu'un utilisateur existe.
 
-## 6. Sauvegarde
+## 6. Sauvegardes automatiques
 
 Les données PostgreSQL vivent dans le volume Docker `rewardconnection_pg`.
 
-Exemple de sauvegarde :
+Le service `backup` crée automatiquement une sauvegarde PostgreSQL au format compressé dans :
 
-```bash
-docker compose exec -T db pg_dump -U reward rewardconnection > rewardconnection-$(date +%F).sql
+```text
+./backups/
 ```
 
-Restauration sur une base vide :
+Par défaut :
 
-```bash
-cat sauvegarde.sql | docker compose exec -T db psql -U reward rewardconnection
+- une sauvegarde au démarrage du service ;
+- puis une sauvegarde toutes les 24 heures ;
+- conservation pendant 14 jours.
+
+Ces valeurs se changent dans `.env` :
+
+```env
+BACKUP_RETENTION_DAYS="14"
+BACKUP_INTERVAL_SECONDS="86400"
 ```
 
-Conserve une copie des sauvegardes en dehors du mini-PC.
+Créer immédiatement une sauvegarde manuelle :
+
+```bash
+./scripts/backup-now.sh
+```
+
+Restaurer une sauvegarde :
+
+```bash
+./scripts/restore-backup.sh backups/rewardconnection-YYYYMMDD-HHMMSS.dump
+```
+
+Le script de restauration demande de taper `RESTAURER`, arrête temporairement l'application, le worker et le service de backup, remplace la base, puis redémarre les services.
+
+Les fichiers `backups/`, `*.dump` et `*.sql` sont ignorés par Git.
+
+**Important :** une sauvegarde stockée sur le même SSD protège contre une erreur de base mais pas contre la panne physique du disque. Copie régulièrement le dossier `backups/` sur un autre support ou une autre machine.
 
 ## 7. Mise à jour
 

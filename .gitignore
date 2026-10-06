@@ -5,5 +5,8 @@ dist/
 .env.*
 !.env.example
 coverage/
+backups/
+*.dump
+*.sql
 *.log
 .DS_Store

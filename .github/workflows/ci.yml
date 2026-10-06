@@ -67,6 +67,11 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Validate shell scripts
+        run: |
+          sh -n scripts/backup-now.sh
+          sh -n scripts/restore-backup.sh
+
       - name: Validate Docker Compose
         run: |
           cp .env.example .env
