@@ -155,7 +155,7 @@ Voir [docs/MIKROTIK.md](docs/MIKROTIK.md) pour la configuration réseau.
 
 Voir [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-Le chemin recommandé est un mini-PC Debian/Ubuntu avec Docker Engine. Le déploiement lance trois services locaux : PostgreSQL, l'application et un worker de réconciliation réseau.
+Le chemin recommandé est un mini-PC Debian/Ubuntu avec Docker Engine. Le déploiement lance quatre services locaux : PostgreSQL, l'application, un worker de réconciliation réseau et un service de sauvegarde automatique.
 
 ## Logiciels payants
 
@@ -217,3 +217,17 @@ docker compose exec app npm run admin:reset-password -- parent@maison.local Nouv
 ```
 
 La commande ne crée pas de nouvel utilisateur : elle remplace uniquement le hash du mot de passe du compte existant.
+
+
+## Sauvegarde automatique
+
+Docker Compose crée des sauvegardes PostgreSQL compressées dans `./backups/`.
+
+Par défaut, une sauvegarde est créée toutes les 24 heures et les fichiers de plus de 14 jours sont supprimés automatiquement.
+
+```bash
+./scripts/backup-now.sh
+./scripts/restore-backup.sh backups/rewardconnection-YYYYMMDD-HHMMSS.dump
+```
+
+Conserve périodiquement une copie du dossier `backups/` en dehors du mini-PC.
