@@ -5,25 +5,32 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("parent@demo.local");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function submit(event: FormEvent) {
+    event.preventDefault();
     setBusy(true);
     setError("");
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) return setError(data.error || "Connexion impossible");
-    router.push(data.role === "PARENT" ? "/parent" : "/child");
-    router.refresh();
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Connexion impossible");
+        return;
+      }
+      router.push(data.role === "PARENT" ? "/parent" : "/child");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -31,18 +38,13 @@ export default function LoginPage() {
       <section className="authCard">
         <div className="brandMark">RC</div>
         <h1>RewardConnection</h1>
-        <p className="muted">Les efforts deviennent du temps Internet.</p>
+        <p className="muted">Connecte-toi avec le compte créé pour ta famille.</p>
         <form onSubmit={submit} className="stack">
-          <label>Email<input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required /></label>
-          <label>Mot de passe<input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required /></label>
+          <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" required /></label>
+          <label>Mot de passe<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label>
           {error && <div className="error">{error}</div>}
           <button className="primary" disabled={busy}>{busy ? "Connexion..." : "Se connecter"}</button>
         </form>
-        <div className="demoBox">
-          <strong>Démo</strong>
-          <span>Parent : parent@demo.local / demo1234</span>
-          <span>Enfant : enfant@demo.local / demo1234</span>
-        </div>
       </section>
     </main>
   );

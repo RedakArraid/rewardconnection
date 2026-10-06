@@ -9,6 +9,7 @@ import CreateChildForm from "@/components/CreateChildForm";
 import CreateParentForm from "@/components/CreateParentForm";
 import RouterPanel from "@/components/RouterPanel";
 import DeviceActions from "@/components/DeviceActions";
+import SystemStatus from "@/components/SystemStatus";
 
 function remaining(expiresAt: Date) {
   const ms = expiresAt.getTime() - Date.now();
@@ -89,6 +90,8 @@ export default async function ParentPage() {
           })}
         </div>
       </section>
+
+      <SystemStatus />
 
       <RouterPanel children={childOptions} />
 

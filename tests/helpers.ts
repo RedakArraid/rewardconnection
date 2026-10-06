@@ -1,6 +1,7 @@
 import { prisma } from "../src/lib/prisma";
 
 export async function resetDatabase() {
+  await prisma.serviceHeartbeat.deleteMany();
   await prisma.activeInternetAccess.deleteMany();
   await prisma.internetSession.deleteMany();
   await prisma.tokenTransaction.deleteMany();

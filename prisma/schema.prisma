@@ -151,3 +151,13 @@ model ActiveInternetAccess {
 
   @@index([expiresAt])
 }
+
+model ServiceHeartbeat {
+  id            String   @id
+  lastSeenAt    DateTime @default(now())
+  lastSuccessAt DateTime?
+  lastError     String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
