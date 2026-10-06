@@ -14,7 +14,8 @@
     "verify": "npm run typecheck && npm test && npm run build",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "admin:reset-password": "tsx scripts/reset-password.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

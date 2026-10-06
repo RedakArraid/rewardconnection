@@ -10,6 +10,7 @@ import CreateParentForm from "@/components/CreateParentForm";
 import RouterPanel from "@/components/RouterPanel";
 import DeviceActions from "@/components/DeviceActions";
 import SystemStatus from "@/components/SystemStatus";
+import ChildAccountManager from "@/components/ChildAccountManager";
 
 function remaining(expiresAt: Date) {
   const ms = expiresAt.getTime() - Date.now();
@@ -50,6 +51,7 @@ export default async function ParentPage() {
   ]);
 
   const childOptions = children.map((child) => ({ id: child.id, name: child.name }));
+  const childAccounts = children.map((child) => ({ id: child.id, name: child.name, email: child.email }));
 
   return (
     <main className="appShell">
@@ -99,6 +101,8 @@ export default async function ParentPage() {
         <CreateChildForm />
         <CreateParentForm />
       </div>
+
+      <ChildAccountManager children={childAccounts} />
 
       <section className="card compact">
         <strong>Parents autorisés</strong>

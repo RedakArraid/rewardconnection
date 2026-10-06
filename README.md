@@ -204,3 +204,16 @@ tests/
 docs/
 .github/workflows/
 ```
+
+
+## Récupération d'un compte
+
+Un parent connecté peut modifier l'identifiant, le prénom et le mot de passe d'un enfant depuis l'espace parent.
+
+Si le dernier compte parent devient inaccessible, le propriétaire du mini-PC peut réinitialiser le mot de passe directement sur le serveur :
+
+```bash
+docker compose exec app npm run admin:reset-password -- parent@maison.local NouveauMotDePasse
+```
+
+La commande ne crée pas de nouvel utilisateur : elle remplace uniquement le hash du mot de passe du compte existant.
