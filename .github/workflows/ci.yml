@@ -66,3 +66,11 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Validate Docker Compose
+        run: |
+          cp .env.example .env
+          docker compose config >/dev/null
+
+      - name: Build production container
+        run: docker build -t rewardconnection:ci .
