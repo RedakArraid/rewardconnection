@@ -42,6 +42,9 @@ Un parent crée des missions et attribue des jetons. Un enfant utilise un jeton 
 - protection contre la double consommation de jetons ;
 - protection contre la double validation d'une mission ;
 - synchronisation des sessions expirées ;
+- resynchronisation automatique après redémarrage du routeur ;
+- worker local toutes les 30 secondes, sans consommation de jeton ;
+- ajout d'un appareil pendant une session active pris en compte automatiquement ;
 - validation du sous-réseau enfants ;
 - mode simulation sans MikroTik.
 
@@ -152,7 +155,7 @@ Voir [docs/MIKROTIK.md](docs/MIKROTIK.md) pour la configuration réseau.
 
 Voir [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-Le chemin recommandé est un mini-PC Debian/Ubuntu avec Docker Engine.
+Le chemin recommandé est un mini-PC Debian/Ubuntu avec Docker Engine. Le déploiement lance trois services locaux : PostgreSQL, l'application et un worker de réconciliation réseau.
 
 ## Logiciels payants
 

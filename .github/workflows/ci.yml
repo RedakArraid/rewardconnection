@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/rewardconnection-v1
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -36,6 +36,7 @@ jobs:
       AUTH_SECRET: ci-only-secret-with-more-than-thirty-two-characters
       APP_URL: http://localhost:3000
       AUTH_COOKIE_SECURE: "false"
+      INTERNAL_CRON_SECRET: ci-only-internal-secret-with-more-than-twenty-four-characters
       MIKROTIK_ENABLED: "false"
       MIKROTIK_CHILD_SUBNET: 192.168.20.0/24
       TOKEN_MINUTES: "60"

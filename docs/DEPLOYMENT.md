@@ -52,7 +52,13 @@ openssl rand -hex 32
 openssl rand -hex 32
 ```
 
-Utilise l'un pour `AUTH_SECRET` et l'autre pour `POSTGRES_PASSWORD`.
+Utilise l'un pour `AUTH_SECRET`, un autre pour `POSTGRES_PASSWORD`, puis génère également un troisième secret pour `INTERNAL_CRON_SECRET`.
+
+```bash
+openssl rand -hex 32
+```
+
+Le worker interne utilise ce secret pour resynchroniser les sessions actives toutes les 30 secondes. Cela permet notamment de restaurer automatiquement les autorisations après un redémarrage du MikroTik.
 
 Avant le branchement du MikroTik :
 
@@ -77,7 +83,10 @@ Vérifie :
 ```bash
 docker compose ps
 docker compose logs -f app
+docker compose logs -f worker
 ```
+
+Tu dois voir trois services : `db`, `app` et `worker`.
 
 L'endpoint suivant doit répondre `{"status":"ok"}` :
 
@@ -142,3 +151,17 @@ La V1 est conçue pour fonctionner localement dans la maison.
 Ne redirige pas le port 3000 du routeur vers Internet.
 
 Si un accès distant est souhaité plus tard, utilise un VPN privé vers la maison plutôt qu'une exposition directe de l'application ou de RouterOS.
+
+
+## 10. Résilience routeur
+
+Le service `worker` appelle l'endpoint interne de réconciliation toutes les 30 secondes.
+
+Il sert à :
+
+- marquer en base les sessions arrivées à expiration ;
+- vérifier les sessions Internet encore actives ;
+- réappliquer les autorisations manquantes sur le MikroTik après un redémarrage ou une perte temporaire de connexion ;
+- intégrer automatiquement un appareil ajouté pendant une session déjà active.
+
+Le worker ne consomme jamais un nouveau jeton. Il restaure uniquement l'état correspondant aux sessions déjà payées.

@@ -4,6 +4,7 @@ import { requireParent } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/http";
 import { assertChildSubnet, normalizeIPv4, normalizeMac } from "@/lib/network";
+import { ensureChildInternetAccess } from "@/lib/session";
 
 const schema = z.object({
   childId: z.string().min(1),
@@ -45,7 +46,15 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(device);
+    let syncWarning: string | null = null;
+    try {
+      await ensureChildInternetAccess(child.id);
+    } catch (error) {
+      console.error("Device created but active session could not be synchronized", error);
+      syncWarning = "Appareil créé, mais la session Internet active n'a pas pu être synchronisée immédiatement.";
+    }
+
+    return NextResponse.json({ device, warning: syncWarning });
   } catch (error) {
     return apiError(error);
   }

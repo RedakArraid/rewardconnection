@@ -60,12 +60,29 @@ export default function RouterPanel({ children }: { children: Child[] }) {
     }
   }
 
+  async function sync() {
+    try {
+      setBusy(true);
+      setMessage("");
+      const data = await jsonFetch("/api/parent/router/sync", { method: "POST" });
+      if (data.failures?.length) {
+        setMessage(`Synchronisation partielle : ${data.synced}/${data.active} session(s).`);
+      } else {
+        setMessage(`Synchronisation terminée : ${data.synced} session(s), ${data.added} autorisation(s) restaurée(s).`);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Synchronisation impossible");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function assign(lease: Lease) {
     if (!childId) return;
     try {
       setBusy(true);
       setMessage("");
-      await jsonFetch("/api/parent/router/leases", {
+      const data = await jsonFetch("/api/parent/router/leases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,7 +91,7 @@ export default function RouterPanel({ children }: { children: Child[] }) {
           name: lease.hostName || undefined,
         }),
       });
-      setMessage("Appareil associé et bail DHCP rendu statique.");
+      setMessage(data.warning || "Appareil associé et bail DHCP rendu statique.");
       await scan();
       router.refresh();
     } catch (error) {
@@ -93,9 +110,14 @@ export default function RouterPanel({ children }: { children: Child[] }) {
         </div>
         <div className="actions">
           <button className="ghost small" disabled={busy} onClick={check}>Tester</button>
+          <button className="ghost small" disabled={busy} onClick={sync}>Resynchroniser</button>
           <button className="secondary small" disabled={busy} onClick={scan}>Scanner DHCP</button>
         </div>
       </div>
+
+      <p className="muted smallText">
+        La resynchronisation restaure automatiquement les autorisations encore valides après un redémarrage du routeur.
+      </p>
 
       {status && (
         <div className={status.connected ? "routerStatus successBox" : "routerStatus"}>

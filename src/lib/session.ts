@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { authorizeDevices, revokeDevices } from "@/lib/mikrotik";
+import { authorizeDevices, ensureAuthorizedDevices, revokeDevices } from "@/lib/mikrotik";
 import { assertChildSubnet } from "@/lib/network";
 
 function tokenMinutes() {
@@ -152,6 +152,70 @@ export async function activateInternet(childId: string) {
     await compensateFailedActivation(childId, session.id);
     throw error;
   }
+}
+
+export async function ensureChildInternetAccess(childId: string) {
+  await reconcileExpiredSessions({ userId: childId });
+
+  const active = await prisma.activeInternetAccess.findUnique({
+    where: { userId: childId },
+    include: {
+      session: true,
+      user: {
+        include: { devices: { where: { enabled: true } } },
+      },
+    },
+  });
+
+  if (!active) return { active: false, added: 0 };
+
+  const devices = active.user.devices.filter((device) => Boolean(device.ipAddress));
+  if (!devices.length) return { active: true, added: 0 };
+
+  const router = await ensureAuthorizedDevices(
+    devices,
+    active.session.expiresAt,
+    childId,
+    active.sessionId,
+  );
+
+  return { active: true, added: router.added, router };
+}
+
+export async function resyncActiveSessions(options?: { familyId?: string }) {
+  await reconcileExpiredSessions(options);
+
+  const active = await prisma.activeInternetAccess.findMany({
+    where: options?.familyId ? { user: { familyId: options.familyId } } : undefined,
+    include: {
+      session: true,
+      user: { include: { devices: { where: { enabled: true } } } },
+    },
+  });
+
+  let added = 0;
+  let synced = 0;
+  const failures: Array<{ userId: string; error: string }> = [];
+
+  for (const item of active) {
+    try {
+      const router = await ensureAuthorizedDevices(
+        item.user.devices,
+        item.session.expiresAt,
+        item.userId,
+        item.sessionId,
+      );
+      added += router.added;
+      synced++;
+    } catch (error) {
+      failures.push({
+        userId: item.userId,
+        error: error instanceof Error ? error.message : "UNKNOWN",
+      });
+    }
+  }
+
+  return { active: active.length, synced, added, failures };
 }
 
 export async function stopInternet(childId: string) {

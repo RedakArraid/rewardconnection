@@ -106,6 +106,39 @@ function addressListName() {
   return process.env.MIKROTIK_ADDRESS_LIST || "rewardconnection-active";
 }
 
+function usableDevices(devices: DeviceInput[]) {
+  const usable = devices
+    .filter((device): device is DeviceInput & { ipAddress: string } => Boolean(device.ipAddress))
+    .map((device) => ({ ...device, ipAddress: normalizeIPv4(device.ipAddress) }));
+
+  for (const device of usable) assertChildSubnet(device.ipAddress);
+  return usable;
+}
+
+async function listRewardEntries() {
+  const list = addressListName();
+  return request<Array<Record<string, string>>>(
+    `/ip/firewall/address-list?list=${encodeURIComponent(list)}`,
+  );
+}
+
+async function addAuthorization(
+  device: DeviceInput & { ipAddress: string },
+  expiresAt: Date,
+  childId: string,
+  sessionId: string,
+) {
+  const remainingSeconds = Math.ceil((expiresAt.getTime() - Date.now()) / 1000);
+  if (remainingSeconds <= 0) return null;
+
+  return request<Record<string, string>>("/ip/firewall/address-list", "PUT", {
+    list: addressListName(),
+    address: device.ipAddress,
+    timeout: `${remainingSeconds}s`,
+    comment: `rewardconnection session=${sessionId} child=${childId} device=${device.name.slice(0, 40)}`,
+  });
+}
+
 export async function getRouterStatus(): Promise<RouterStatus> {
   if (!isMikrotikEnabled()) {
     return { mode: "simulation", connected: false, message: "Mode simulation : aucun routeur n'est piloté." };
@@ -160,30 +193,18 @@ export async function authorizeDevices(
   childId: string,
   sessionId: string,
 ) {
-  const usable = devices
-    .filter((device): device is DeviceInput & { ipAddress: string } => Boolean(device.ipAddress))
-    .map((device) => ({ ...device, ipAddress: normalizeIPv4(device.ipAddress) }));
-
-  for (const device of usable) assertChildSubnet(device.ipAddress);
+  const usable = usableDevices(devices);
 
   if (!isMikrotikEnabled()) {
     return { mode: "simulation" as const, authorized: usable.length };
   }
 
   await revokeDevices(usable);
-
-  const list = addressListName();
   const createdIds: string[] = [];
 
   try {
     for (const device of usable) {
-      const remainingSeconds = Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / 1000));
-      const created = await request<Record<string, string>>("/ip/firewall/address-list", "PUT", {
-        list,
-        address: device.ipAddress,
-        timeout: `${remainingSeconds}s`,
-        comment: `rewardconnection session=${sessionId} child=${childId} device=${device.name.slice(0, 40)}`,
-      });
+      const created = await addAuthorization(device, expiresAt, childId, sessionId);
       if (created?.[".id"]) createdIds.push(created[".id"]);
     }
   } catch (error) {
@@ -200,23 +221,42 @@ export async function authorizeDevices(
   return { mode: "mikrotik" as const, authorized: usable.length };
 }
 
+export async function ensureAuthorizedDevices(
+  devices: DeviceInput[],
+  expiresAt: Date,
+  childId: string,
+  sessionId: string,
+) {
+  const usable = usableDevices(devices);
+
+  if (!isMikrotikEnabled()) {
+    return { mode: "simulation" as const, present: usable.length, added: 0 };
+  }
+
+  const entries = await listRewardEntries();
+  const existingIps = new Set((entries || []).map((entry) => entry.address).filter(Boolean));
+  let added = 0;
+
+  for (const device of usable) {
+    if (existingIps.has(device.ipAddress)) continue;
+    await addAuthorization(device, expiresAt, childId, sessionId);
+    added++;
+  }
+
+  return { mode: "mikrotik" as const, present: usable.length, added };
+}
+
 export async function revokeDevices(devices: DeviceInput[]) {
   const ips = new Set(
-    devices
-      .map((device) => device.ipAddress)
-      .filter((value): value is string => Boolean(value))
-      .map(normalizeIPv4),
+    usableDevices(devices).map((device) => device.ipAddress),
   );
 
   if (!isMikrotikEnabled()) return { mode: "simulation" as const, revoked: ips.size };
   if (!ips.size) return { mode: "mikrotik" as const, revoked: 0 };
 
-  const list = addressListName();
-  const entries = await request<Array<Record<string, string>>>(
-    `/ip/firewall/address-list?list=${encodeURIComponent(list)}`,
-  );
-
+  const entries = await listRewardEntries();
   let count = 0;
+
   for (const entry of entries || []) {
     if (entry[".id"] && entry.address && ips.has(entry.address)) {
       await request<void>(`/ip/firewall/address-list/${safeRouterId(entry[".id"])}`, "DELETE");
