@@ -111,10 +111,10 @@ export async function getRouterStatus(): Promise<RouterStatus> {
     return { mode: "simulation", connected: false, message: "Mode simulation : aucun routeur n'est piloté." };
   }
 
-  const resource = await request<Array<Record<string, string>>>(
+  const resource = await request<Record<string, string> | Array<Record<string, string>>>(
     "/system/resource?.proplist=board-name,version,uptime,cpu-load",
   );
-  const row = resource?.[0] || {};
+  const row = Array.isArray(resource) ? (resource[0] || {}) : (resource || {});
   return {
     mode: "mikrotik",
     connected: true,
