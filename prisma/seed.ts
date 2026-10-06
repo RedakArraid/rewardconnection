@@ -7,7 +7,7 @@ async function main() {
   const family = await prisma.family.upsert({
     where: { id: "demo-family" },
     update: {},
-    create: { id: "demo-family", name: "Famille Démo" },
+    create: { id: "demo-family", name: "Famille Démo", tokenMinutes: 60 },
   });
 
   const passwordHash = await bcrypt.hash("demo1234", 12);

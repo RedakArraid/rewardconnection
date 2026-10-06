@@ -19,7 +19,9 @@ Un parent crée des missions et attribue des jetons. Un enfant utilise un jeton 
 - conversion automatique du bail sélectionné en bail statique ;
 - test de connexion RouterOS ;
 - coupure immédiate de l'accès Internet ;
-- consultation de l'état des enfants et des appareils.
+- consultation de l'état des enfants et des appareils ;
+- réglage depuis l'interface du nombre de minutes accordées par jeton ;
+- modification du nom de la famille.
 
 ### Enfant
 
@@ -231,3 +233,14 @@ Par défaut, une sauvegarde est créée toutes les 24 heures et les fichiers de 
 ```
 
 Conserve périodiquement une copie du dossier `backups/` en dehors du mini-PC.
+
+
+## Réglages famille
+
+La durée d'un jeton n'est plus figée dans la configuration du serveur. Le premier démarrage utilise `TOKEN_MINUTES` comme valeur initiale, puis les parents peuvent la modifier directement dans l'espace Parent entre 5 et 1440 minutes.
+
+Le changement s'applique uniquement aux nouvelles sessions ; une session déjà active conserve son heure d'expiration.
+
+## Web app
+
+RewardConnection fournit un manifeste web et des icônes adaptées à l'ajout sur l'écran d'accueil. Pour bénéficier de toutes les possibilités d'installation des navigateurs mobiles, sers l'application en HTTPS sur le réseau local.

@@ -3,12 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { authorizeDevices, ensureAuthorizedDevices, revokeDevices } from "@/lib/mikrotik";
 import { assertChildSubnet } from "@/lib/network";
 
-function tokenMinutes() {
-  const minutes = Number(process.env.TOKEN_MINUTES || 60);
-  if (!Number.isFinite(minutes) || minutes < 1 || minutes > 1440) {
-    throw new Error("Invalid TOKEN_MINUTES");
+function validateTokenMinutes(value: number) {
+  if (!Number.isInteger(value) || value < 5 || value > 1440) {
+    throw new Error("INVALID_TOKEN_MINUTES");
   }
-  return Math.floor(minutes);
+  return value;
 }
 
 export async function reconcileExpiredSessions(options?: { userId?: string; familyId?: string }) {
@@ -46,7 +45,7 @@ export async function getActiveInternetAccess(userId: string) {
   });
 }
 
-async function createSessionAtomically(childId: string, expiresAt: Date) {
+async function createSessionAtomically(childId: string, expiresAt: Date, minutes: number) {
   try {
     return await prisma.$transaction(async (tx) => {
       const child = await tx.user.findUnique({
@@ -77,7 +76,7 @@ async function createSessionAtomically(childId: string, expiresAt: Date) {
           userId: childId,
           type: "SPEND",
           amount: -1,
-          reason: `${tokenMinutes()} minutes d'Internet`,
+          reason: `${minutes} minutes d'Internet`,
         },
       });
 
@@ -123,7 +122,10 @@ export async function activateInternet(childId: string) {
 
   const child = await prisma.user.findUnique({
     where: { id: childId },
-    include: { devices: { where: { enabled: true } } },
+    include: {
+      devices: { where: { enabled: true } },
+      family: { select: { tokenMinutes: true } },
+    },
   });
   if (!child || child.role !== "CHILD") throw new Error("FORBIDDEN");
 
@@ -133,8 +135,9 @@ export async function activateInternet(childId: string) {
     if (device.ipAddress) assertChildSubnet(device.ipAddress);
   }
 
-  const expiresAt = new Date(Date.now() + tokenMinutes() * 60_000);
-  const session = await createSessionAtomically(childId, expiresAt);
+  const minutes = validateTokenMinutes(child.family.tokenMinutes);
+  const expiresAt = new Date(Date.now() + minutes * 60_000);
+  const session = await createSessionAtomically(childId, expiresAt, minutes);
 
   try {
     const router = await authorizeDevices(devices, expiresAt, childId, session.id);

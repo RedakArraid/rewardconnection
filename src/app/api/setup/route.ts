@@ -22,7 +22,11 @@ export async function POST(req: Request) {
     const passwordHash = await bcrypt.hash(data.password, 12);
 
     const parent = await prisma.$transaction(async (tx) => {
-      const family = await tx.family.create({ data: { name: data.familyName } });
+      const defaultTokenMinutes = Number(process.env.TOKEN_MINUTES || 60);
+      const tokenMinutes = Number.isInteger(defaultTokenMinutes) && defaultTokenMinutes >= 5 && defaultTokenMinutes <= 1440
+        ? defaultTokenMinutes
+        : 60;
+      const family = await tx.family.create({ data: { name: data.familyName, tokenMinutes } });
       return tx.user.create({
         data: {
           familyId: family.id,

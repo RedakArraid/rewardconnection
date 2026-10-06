@@ -12,8 +12,10 @@ export async function resetDatabase() {
   await prisma.family.deleteMany();
 }
 
-export async function createFamilyFixture(options?: { balance?: number; withDevice?: boolean }) {
-  const family = await prisma.family.create({ data: { name: "Famille Test" } });
+export async function createFamilyFixture(options?: { balance?: number; withDevice?: boolean; tokenMinutes?: number }) {
+  const family = await prisma.family.create({
+    data: { name: "Famille Test", tokenMinutes: options?.tokenMinutes ?? 60 },
+  });
   const parent = await prisma.user.create({
     data: {
       familyId: family.id,

@@ -11,6 +11,7 @@ import RouterPanel from "@/components/RouterPanel";
 import DeviceActions from "@/components/DeviceActions";
 import SystemStatus from "@/components/SystemStatus";
 import ChildAccountManager from "@/components/ChildAccountManager";
+import FamilySettings from "@/components/FamilySettings";
 
 function remaining(expiresAt: Date) {
   const ms = expiresAt.getTime() - Date.now();
@@ -28,7 +29,7 @@ export default async function ParentPage() {
 
   await reconcileExpiredSessions({ familyId: parent.familyId });
 
-  const [children, claimed, parents] = await Promise.all([
+  const [children, claimed, parents, family] = await Promise.all([
     prisma.user.findMany({
       where: { familyId: parent.familyId, role: "CHILD" },
       include: {
@@ -48,6 +49,10 @@ export default async function ParentPage() {
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     }),
+    prisma.family.findUniqueOrThrow({
+      where: { id: parent.familyId },
+      select: { name: true, tokenMinutes: true },
+    }),
   ]);
 
   const childOptions = children.map((child) => ({ id: child.id, name: child.name }));
@@ -64,7 +69,7 @@ export default async function ParentPage() {
         <div>
           <span className="eyebrow">RewardConnection</span>
           <h2>Les efforts deviennent du temps Internet.</h2>
-          <p>1 jeton = {process.env.TOKEN_MINUTES || 60} minutes de connexion pour tous les appareils de l'enfant.</p>
+          <p>1 jeton = {family.tokenMinutes} minutes de connexion pour tous les appareils de l'enfant.</p>
         </div>
         <div className="heroIcon">🪙</div>
       </section>
@@ -94,6 +99,8 @@ export default async function ParentPage() {
       </section>
 
       <SystemStatus />
+
+      <FamilySettings familyName={family.name} tokenMinutes={family.tokenMinutes} />
 
       <RouterPanel children={childOptions} />
 
