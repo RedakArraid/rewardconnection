@@ -48,21 +48,72 @@ RewardConnection ajoute temporairement les IP autorisées dans :
 rewardconnection-active
 ```
 
-Les règles RewardConnection doivent passer avant une règle générale qui laisserait survivre une connexion déjà établie, et avant FastTrack pour le trafic enfants.
+Pour garantir une **vraie coupure à 00:00**, le trafic enfants ne doit jamais être FastTracké. Sinon une connexion déjà accélérée pourrait continuer à contourner les règles normales du firewall.
 
-Exemple conceptuel à adapter :
+Si tu as une règle FastTrack standard, exclue le sous-réseau enfants dans les deux directions :
+
+```routeros
+/ip firewall filter
+set [find action=fasttrack-connection] \
+    src-address=!192.168.20.0/24 \
+    dst-address=!192.168.20.0/24
+```
+
+Ensuite place les règles RewardConnection **avant les règles générales `established,related`**.
+
+Exemple à adapter :
 
 ```routeros
 /ip firewall filter
 
-add chain=forward     src-address=192.168.20.0/24     dst-address=192.168.10.10     protocol=tcp dst-port=3000     action=accept     comment="RewardConnection application locale"
+# L'enfant doit toujours pouvoir ouvrir RewardConnection,
+# même lorsque son temps Internet est à zéro.
+add chain=forward \
+    src-address=192.168.20.0/24 \
+    dst-address=192.168.10.10 \
+    protocol=tcp dst-port=3000 \
+    action=accept \
+    comment="RewardConnection application locale"
 
-add chain=forward     src-address=192.168.20.0/24     src-address-list=rewardconnection-active     out-interface-list=WAN     action=accept     comment="RewardConnection Internet actif"
+# Isole le réseau enfants du réseau parents / serveurs.
+# Les exceptions nécessaires doivent être placées avant cette règle.
+add chain=forward \
+    src-address=192.168.20.0/24 \
+    dst-address=192.168.10.0/24 \
+    action=drop \
+    comment="RewardConnection isolation LAN enfants"
 
-add chain=forward     src-address=192.168.20.0/24     out-interface-list=WAN     action=drop     comment="RewardConnection Internet bloque"
+# Coupe immédiatement les paquets sortants dès que le timeout
+# de l'address-list a expiré, y compris sur une connexion déjà établie.
+add chain=forward \
+    src-address=192.168.20.0/24 \
+    src-address-list=!rewardconnection-active \
+    out-interface-list=WAN \
+    action=drop \
+    comment="RewardConnection bloque enfants sans temps"
+
+# Coupe aussi les paquets de retour WAN d'une ancienne connexion.
+add chain=forward \
+    dst-address=192.168.20.0/24 \
+    dst-address-list=!rewardconnection-active \
+    in-interface-list=WAN \
+    action=drop \
+    comment="RewardConnection bloque retours apres expiration"
+
+# Autorise les appareils dont le temps est actif.
+add chain=forward \
+    src-address=192.168.20.0/24 \
+    src-address-list=rewardconnection-active \
+    out-interface-list=WAN \
+    action=accept \
+    comment="RewardConnection Internet actif"
 ```
 
-Place ces règles suffisamment haut dans le firewall pour qu'elles soient évaluées avant FastTrack et avant les règles génériques qui accepteraient le trafic enfants.
+Ces règles doivent être au-dessus des règles génériques qui acceptent `established,related`.
+
+Avec cette organisation, lorsque RouterOS retire automatiquement l'adresse de `rewardconnection-active` à l'expiration du timeout, le paquet suivant est bloqué. Il n'est donc pas nécessaire d'attendre la fermeture naturelle d'une session YouTube, Netflix, jeu en ligne ou téléchargement.
+
+Le bouton **Couper Internet** retire également l'adresse de la liste immédiatement. Le worker de RewardConnection resynchronise seulement les sessions encore valides ; il ne prolonge jamais une session expirée.
 
 ## 4. IPv6
 
