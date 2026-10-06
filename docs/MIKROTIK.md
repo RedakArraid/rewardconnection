@@ -93,14 +93,21 @@ Le firewall local doit permettre au VLAN enfants d'atteindre le mini-PC même lo
 
 N'utilise pas le compte administrateur du routeur dans `.env`.
 
-Crée un utilisateur dédié à RewardConnection, avec uniquement les droits nécessaires pour :
+Crée un groupe et un utilisateur dédiés à RewardConnection. RouterOS sépare bien l'accès REST via la policy `rest-api`.
 
-- lire les ressources système ;
-- lire les baux DHCP ;
-- rendre un bail DHCP statique ;
-- lire/écrire la liste firewall `rewardconnection-active`.
+Exemple pour un mini-PC en `192.168.10.10` :
 
-Limite également ce compte à l'adresse IP du mini-PC.
+```routeros
+/user group
+add name=rewardconnection-rest policy=read,write,rest-api
+
+/user
+add name=rewardconnection     group=rewardconnection-rest     address=192.168.10.10/32     password="REMPLACE_PAR_UN_MOT_DE_PASSE_LONG"
+```
+
+Le droit `read` permet de lire les ressources et les baux DHCP ; `write` est nécessaire pour rendre un bail statique et modifier l'address-list ; `rest-api` autorise l'accès via REST.
+
+L'adresse autorisée du compte limite en plus son utilisation au mini-PC.
 
 Configure ensuite :
 
