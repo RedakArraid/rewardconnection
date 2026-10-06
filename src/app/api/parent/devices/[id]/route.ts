@@ -35,7 +35,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 
     if (enabled && !device.enabled && active) {
       await authorizeDevices(
-        [{ ...device, enabled: true }],
+        [{ ipAddress: device.ipAddress, macAddress: device.macAddress, name: device.name }],
         active.session.expiresAt,
         device.userId,
         active.sessionId,
