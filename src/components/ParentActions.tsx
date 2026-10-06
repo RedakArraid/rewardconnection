@@ -22,12 +22,12 @@ export default function ParentActions({ children }: { children: Child[] }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  async function run(action: () => Promise<unknown>) {
+  async function run(action: () => Promise<unknown>, success = "Action enregistrée.") {
     try {
       setMessage("");
       setError("");
       await action();
-      setMessage("Action enregistrée.");
+      setMessage(success);
       router.refresh();
       return true;
     } catch (caught) {
@@ -37,6 +37,19 @@ export default function ParentActions({ children }: { children: Child[] }) {
   }
 
   if (!children.length) return <div className="card">Crée d'abord un compte enfant.</div>;
+
+  async function submitTokens(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const amount = Number(data.get("amount"));
+    const reason = String(data.get("reason") || "Ajustement parent");
+    const ok = await run(
+      () => post("/api/parent/tokens", { childId, amount, reason }),
+      amount > 0 ? `${amount} jeton(s) ajouté(s).` : `${Math.abs(amount)} jeton(s) retiré(s).`,
+    );
+    if (ok) form.reset();
+  }
 
   async function submitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,7 +79,7 @@ export default function ParentActions({ children }: { children: Child[] }) {
 
   return (
     <div className="stack">
-      <div className="card compact">
+      <div className="card compact stack">
         <div className="fieldRow">
           <label>
             Enfant
@@ -74,13 +87,32 @@ export default function ParentActions({ children }: { children: Child[] }) {
               {children.map((child) => <option key={child.id} value={child.id}>{child.name}</option>)}
             </select>
           </label>
-          <button className="primary small" onClick={() => run(() => post("/api/parent/tokens", {
-            childId,
-            amount: 1,
-            reason: "Jeton donné par un parent",
-          }))}>+1 jeton</button>
-          <button className="danger small" onClick={() => run(() => post("/api/parent/internet/stop", { childId }))}>Couper Internet</button>
+          <button className="primary small" onClick={() => run(
+            () => post("/api/parent/tokens", {
+              childId,
+              amount: 1,
+              reason: "Jeton donné par un parent",
+            }),
+            "1 jeton ajouté.",
+          )}>+1 jeton</button>
+          <button className="danger small" onClick={() => run(
+            () => post("/api/parent/internet/stop", { childId }),
+            "Internet coupé.",
+          )}>Couper Internet</button>
         </div>
+
+        <form className="tokenAdjust" onSubmit={submitTokens}>
+          <label>
+            Ajustement
+            <input name="amount" type="number" min="-20" max="20" step="1" required placeholder="+2 ou -1" />
+          </label>
+          <label className="grow">
+            Motif
+            <input name="reason" maxLength={200} required placeholder="Aide à la cuisine, bonus, correction..." />
+          </label>
+          <button className="secondary small">Appliquer</button>
+        </form>
+
         {message && <div className="notice">{message}</div>}
         {error && <div className="error">{error}</div>}
       </div>
@@ -96,6 +128,8 @@ export default function ParentActions({ children }: { children: Child[] }) {
               <option value="1">1 jeton</option>
               <option value="2">2 jetons</option>
               <option value="3">3 jetons</option>
+              <option value="4">4 jetons</option>
+              <option value="5">5 jetons</option>
             </select>
           </label>
           <button className="primary">Créer la mission</button>

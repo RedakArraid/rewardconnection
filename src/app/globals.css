@@ -100,3 +100,18 @@ input:focus, select:focus, textarea:focus { border-color: #86a0ff; box-shadow: 0
   .deviceLease { align-items: flex-start; flex-direction: column; }
   .deviceLease button { width: 100%; }
 }
+
+
+.healthGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.healthItem { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: #fbfcfe; }
+.healthItem p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.healthDot { width: 11px; height: 11px; border-radius: 999px; flex: 0 0 11px; background: #98a2b3; box-shadow: 0 0 0 4px rgba(152,162,179,.13); }
+.healthDot.ok { background: #16a34a; box-shadow: 0 0 0 4px rgba(22,163,74,.13); }
+.healthDot.warn { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,.13); }
+.healthDot.bad { background: #dc2626; box-shadow: 0 0 0 4px rgba(220,38,38,.13); }
+.tokenAdjust { display: grid; grid-template-columns: 130px minmax(220px,1fr) auto; gap: 10px; align-items: end; padding-top: 10px; border-top: 1px solid var(--border); }
+
+@media (max-width: 800px) {
+  .healthGrid { grid-template-columns: 1fr; }
+  .tokenAdjust { grid-template-columns: 1fr; }
+}
