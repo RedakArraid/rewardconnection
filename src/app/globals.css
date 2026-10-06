@@ -85,3 +85,18 @@ input:focus, select:focus, textarea:focus { border-color: #86a0ff; box-shadow: 0
   .taskRow { align-items: flex-start; }
   .topbar { align-items: flex-start; }
 }
+
+
+.inlineTitle { margin: 0; align-items: center; }
+.inlineTitle h2 { margin-top: 4px; }
+.routerStatus { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 12px 14px; border-radius: 12px; background: #f8fafc; color: var(--muted); }
+.successBox { background: #ecfdf3; color: #166534; }
+.deviceLease { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--border); }
+.deviceLease p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.parentList { margin-top: 10px; }
+.smallText { margin: 0; font-size: 12px; }
+
+@media (max-width: 620px) {
+  .deviceLease { align-items: flex-start; flex-direction: column; }
+  .deviceLease button { width: 100%; }
+}

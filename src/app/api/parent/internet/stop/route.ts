@@ -11,11 +11,16 @@ export async function POST(req: Request) {
   try {
     const parent = await requireParent();
     const { childId } = schema.parse(await req.json());
-    const child = await prisma.user.findFirst({ where: { id: childId, familyId: parent.familyId, role: "CHILD" } });
+
+    const child = await prisma.user.findFirst({
+      where: { id: childId, familyId: parent.familyId, role: "CHILD" },
+      select: { id: true },
+    });
     if (!child) return NextResponse.json({ error: "Enfant introuvable" }, { status: 404 });
+
     await stopInternet(childId);
     return NextResponse.json({ ok: true });
-  } catch (e) {
-    return apiError(e);
+  } catch (error) {
+    return apiError(error);
   }
 }

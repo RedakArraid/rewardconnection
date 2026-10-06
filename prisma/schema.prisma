@@ -51,13 +51,14 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  wallet             TokenWallet?
-  devices            Device[]
-  tasksAssigned      HouseholdTask[] @relation("TaskChild")
-  tasksCreated       HouseholdTask[] @relation("TaskCreator")
-  tokenTransactions  TokenTransaction[] @relation("TokenOwner")
-  transactionsIssued TokenTransaction[] @relation("TokenIssuer")
-  internetSessions   InternetSession[]
+  wallet               TokenWallet?
+  devices              Device[]
+  tasksAssigned        HouseholdTask[] @relation("TaskChild")
+  tasksCreated         HouseholdTask[] @relation("TaskCreator")
+  tokenTransactions    TokenTransaction[] @relation("TokenOwner")
+  transactionsIssued   TokenTransaction[] @relation("TokenIssuer")
+  internetSessions     InternetSession[]
+  activeInternetAccess ActiveInternetAccess?
 
   @@index([familyId, role])
 }
@@ -71,33 +72,38 @@ model TokenWallet {
 }
 
 model TokenTransaction {
-  id         String               @id @default(cuid())
-  userId     String
-  user       User                 @relation("TokenOwner", fields: [userId], references: [id], onDelete: Cascade)
-  issuerId   String?
-  issuer     User?                @relation("TokenIssuer", fields: [issuerId], references: [id], onDelete: SetNull)
-  type       TokenTransactionType
-  amount     Int
-  reason     String?
-  createdAt  DateTime             @default(now())
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation("TokenOwner", fields: [userId], references: [id], onDelete: Cascade)
+  issuerId  String?
+  issuer    User?                @relation("TokenIssuer", fields: [issuerId], references: [id], onDelete: SetNull)
+  type      TokenTransactionType
+  amount    Int
+  reason    String?
+  createdAt DateTime             @default(now())
 
   @@index([userId, createdAt])
 }
 
 model Device {
-  id         String   @id @default(cuid())
-  familyId   String
-  family     Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  macAddress String?
-  ipAddress  String?
-  enabled    Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  familyId      String
+  family        Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  macAddress    String?
+  ipAddress     String?
+  routerLeaseId String?
+  hostname      String?
+  lastSeenAt    DateTime?
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
+  @@index([familyId, ipAddress])
+  @@index([familyId, macAddress])
   @@index([userId])
-  @@index([macAddress])
 }
 
 model HouseholdTask {
@@ -120,16 +126,28 @@ model HouseholdTask {
 }
 
 model InternetSession {
-  id         String        @id @default(cuid())
-  userId     String
-  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startedAt  DateTime      @default(now())
-  expiresAt  DateTime
-  endedAt    DateTime?
-  status     SessionStatus @default(ACTIVE)
-  tokenCost  Int           @default(1)
-  routerRef  String?
-  createdAt  DateTime      @default(now())
+  id           String                @id @default(cuid())
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt    DateTime              @default(now())
+  expiresAt    DateTime
+  endedAt      DateTime?
+  status       SessionStatus         @default(ACTIVE)
+  tokenCost    Int                   @default(1)
+  routerRef    String?
+  createdAt    DateTime              @default(now())
+  activeAccess ActiveInternetAccess?
 
   @@index([userId, status, expiresAt])
+}
+
+model ActiveInternetAccess {
+  userId    String          @id
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String          @unique
+  session   InternetSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime        @default(now())
+
+  @@index([expiresAt])
 }

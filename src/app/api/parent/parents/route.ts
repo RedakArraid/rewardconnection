@@ -17,19 +17,18 @@ export async function POST(req: Request) {
     const data = schema.parse(await req.json());
     const passwordHash = await bcrypt.hash(data.password, 12);
 
-    const child = await prisma.user.create({
+    const created = await prisma.user.create({
       data: {
         familyId: parent.familyId,
-        role: "CHILD",
+        role: "PARENT",
         name: data.name,
         email: data.email.toLowerCase(),
         passwordHash,
-        wallet: { create: { balance: 0 } },
       },
       select: { id: true, name: true, email: true },
     });
 
-    return NextResponse.json(child);
+    return NextResponse.json(created);
   } catch (error) {
     return apiError(error);
   }

@@ -3,6 +3,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE = "rewardconnection_session";
+const ISSUER = "rewardconnection";
+const AUDIENCE = "rewardconnection-web";
 
 function secret() {
   const value = process.env.AUTH_SECRET;
@@ -10,9 +12,19 @@ function secret() {
   return new TextEncoder().encode(value);
 }
 
+function secureCookie() {
+  const override = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase();
+  if (override === "true") return true;
+  if (override === "false") return false;
+  return (process.env.APP_URL || "").startsWith("https://");
+}
+
 export async function createSession(userId: string) {
-  const token = await new SignJWT({ userId })
+  const token = await new SignJWT({})
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(userId)
+    .setIssuer(ISSUER)
+    .setAudience(AUDIENCE)
     .setIssuedAt()
     .setExpirationTime("7d")
     .sign(secret());
@@ -20,8 +32,8 @@ export async function createSession(userId: string) {
   const store = await cookies();
   store.set(COOKIE, token, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    secure: secureCookie(),
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -38,10 +50,13 @@ export async function getCurrentUser() {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, secret());
-    if (typeof payload.userId !== "string") return null;
+    const { payload } = await jwtVerify(token, secret(), {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+    });
+    if (!payload.sub) return null;
     return prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: payload.sub },
       include: { wallet: true },
     });
   } catch {

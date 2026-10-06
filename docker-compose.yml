@@ -4,17 +4,38 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: reward
-      POSTGRES_PASSWORD: reward
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rewardconnection}
       POSTGRES_DB: rewardconnection
-    ports:
-      - "5432:5432"
     volumes:
       - rewardconnection_pg:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U reward -d rewardconnection"]
       interval: 5s
       timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://reward:${POSTGRES_PASSWORD:-rewardconnection}@db:5432/rewardconnection?schema=public"
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
       retries: 10
+      start_period: 30s
 
 volumes:
   rewardconnection_pg:
