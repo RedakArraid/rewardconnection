@@ -20,6 +20,7 @@ const statusByMessage: Record<string, { status: number; label: string }> = {
   ROUTER_TIMEOUT: { status: 504, label: "Le routeur MikroTik ne répond pas" },
   ROUTER_ERROR: { status: 502, label: "Le routeur MikroTik a refusé l'opération" },
   LEASE_NOT_FOUND: { status: 404, label: "Bail DHCP introuvable" },
+  CHILD_NOT_FOUND: { status: 404, label: "Enfant introuvable" },
 };
 
 export function apiError(error: unknown) {
