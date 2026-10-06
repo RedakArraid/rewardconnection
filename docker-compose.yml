@@ -37,5 +37,26 @@ services:
       retries: 10
       start_period: 30s
 
+  worker:
+    build: .
+    restart: unless-stopped
+    init: true
+    depends_on:
+      app:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://reward:${POSTGRES_PASSWORD:-rewardconnection}@db:5432/rewardconnection?schema=public"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        while true; do
+          wget -qO-             --header="Authorization: Bearer $${INTERNAL_CRON_SECRET}"             --post-data=""             http://app:3000/api/internal/reconcile >/dev/null 2>&1 || true
+          sleep 30
+        done
+
 volumes:
   rewardconnection_pg:

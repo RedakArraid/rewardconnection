@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { apiError } from "@/lib/http";
 import { listDhcpLeases, makeDhcpLeaseStatic } from "@/lib/mikrotik";
 import { assertChildSubnet, isIPv4InCidr, normalizeIPv4, normalizeMac } from "@/lib/network";
+import { ensureChildInternetAccess } from "@/lib/session";
 
 const assignSchema = z.object({
   childId: z.string().min(1),
@@ -104,7 +105,15 @@ export async function POST(req: Request) {
           },
         });
 
-    return NextResponse.json(device);
+    let syncWarning: string | null = null;
+    try {
+      await ensureChildInternetAccess(child.id);
+    } catch (error) {
+      console.error("Device associated but active session could not be synchronized", error);
+      syncWarning = "Appareil associé, mais la session Internet active n'a pas pu être synchronisée immédiatement.";
+    }
+
+    return NextResponse.json({ device, warning: syncWarning });
   } catch (error) {
     return apiError(error);
   }
